@@ -2,29 +2,45 @@ import _throttle from 'lodash.throttle';
 
 const form = document.querySelector('.feedback-form');
 const FEEDBACK_FORM_STATE_KEY = 'feedback-form-state';
-
-function loadFormDataFromStorage() {
-  const formDataStorage = JSON.parse(localStorage.getItem(FEEDBACK_FORM_STATE_KEY));
-  if (formDataStorage) {
-    form.elements.email.value = formDataStorage.email;
-    form.elements.message.value = formDataStorage.message;
-  }
-}
+const formData = {};
+const requiredFields = ['email', 'message'];
 
 loadFormDataFromStorage();
 
-form.addEventListener('input', _throttle(({ currentTarget }) =>
-  localStorage.setItem(FEEDBACK_FORM_STATE_KEY,
-    JSON.stringify({
-      email: currentTarget.elements.email.value,
-      message: currentTarget.elements.message.value,
-    })
-  ), 500)
-);
+form.addEventListener('input', _throttle(saveDataForm, 500));
+form.addEventListener('submit', sendDataForm);
 
-form.addEventListener('submit', e => {
+function loadFormDataFromStorage() {
+  const formDataStorage = JSON.parse(
+    localStorage.getItem(FEEDBACK_FORM_STATE_KEY)
+  );
+
+  for (const key in formDataStorage) {
+    form.elements[key].value = formDataStorage[key];
+    formData[key] = formDataStorage[key];
+  }
+}
+
+function saveDataForm(e) {
+  const { name, value } = e.target;
+  formData[name] = value;
+  localStorage.setItem(FEEDBACK_FORM_STATE_KEY, JSON.stringify(formData));
+}
+
+function sendDataForm(e) {
   e.preventDefault();
-  console.log(localStorage.getItem(FEEDBACK_FORM_STATE_KEY));
+  const isAllRequiredFieldsFilled = requiredFields.every(field => formData[field]);
+
+  if (isAllRequiredFieldsFilled) {
+    console.log(formData);
+    clearAllData(e);
+  } else {
+    alert('Please fill in all required fields');
+  }
+}
+
+function clearAllData(e) {
+  Object.keys(formData).forEach(key => (formData[key] = ''));
   localStorage.removeItem(FEEDBACK_FORM_STATE_KEY);
-  form.reset();
-});
+  e.currentTarget.reset();
+}
